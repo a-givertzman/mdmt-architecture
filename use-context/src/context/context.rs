@@ -256,4 +256,39 @@ mod tests {
             "All commits must be strictly serialized without lost updates"
         );
     }
+    #[test]
+    fn test_concurrent_high_load_occ() {
+        let initial = InitialCtx::default();
+        let context = Arc::new(Context::new(initial));
+        let num_threads = 10;
+        let updates_per_thread = 100;
+        let mut handles = vec![];
+        for _ in 0..num_threads {
+            let ctx_clone = Arc::clone(&context);
+            handles.push(std::thread::spawn(move || {
+                for _ in 0..updates_per_thread {
+                    loop {
+                        let tx = ctx_clone.transaction();
+                        // Имитируем успешный коммит. В реальной жизни здесь будут изменения данных.
+                        match tx.commit() {
+                            Ok(_) => break, // Успех, идем к следующему обновлению
+                            Err(_) => continue, // Конфликт версий, повторяем попытку
+                        }
+                    }
+                }
+            }));
+        }
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        let final_tx = context.transaction();
+        // Проверяем, что ни одна транзакция не потерялась
+        assert_eq!(final_tx.state.version, num_threads * updates_per_thread);
+    }
+    #[test]
+    fn test_context_get_size() {
+        let context = Context::new(InitialCtx::default());
+        // Просто проверяем, что метод отрабатывает и возвращает ненулевой размер
+        assert!(context.get_size() > 0);
+    }
 }

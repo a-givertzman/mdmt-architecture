@@ -148,6 +148,17 @@ pub fn derive_context_properties(input: TokenStream) -> TokenStream {
                 std::vec![(#key, json_string)]
             }
         }
+        impl crate::snapshot::Properties for &#name {
+            ///
+            /// ### Сериализует поля данной структуры
+            /// - Возвращает в виде вектора пар (IEC key, JSON value).
+            /// - Предназначено для формирования консистентного снимка (Snapshot) и отправки на UI/DB.
+            fn properties(&self) -> std::vec::Vec<(&'static str, std::string::String)> {
+                let json_string = serde_json::to_string(self)
+                    .expect(concat!("Failed to serialize property for type ", stringify!(#name)));
+                std::vec![(#key, json_string)]
+            }
+        }
     };
     TokenStream::from(expanded)
 }

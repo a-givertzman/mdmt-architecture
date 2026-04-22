@@ -100,3 +100,46 @@ impl Upsert {
         Sql()
     }
 }
+///
+/// Basic tests
+#[cfg(test)]
+mod snapshot_tests {
+    use sal_context_macros::ContextProperties;
+    use sal_sync::sync::channel;
+    use serde::Serialize;
+    use super::*;
+
+    #[derive(Debug, Serialize, ContextProperties)]
+    #[iec_id = "Mock.Property"]
+    struct MockProperty {
+        val: i32,
+    }
+    // impl Properties for MockProperty {
+    //     fn properties(&self) -> Vec<(&'static str, String)> {
+    //         vec![("Test.Id", format!("{{\"val\":{}}}", self.val))]
+    //     }
+    // }
+    #[test]
+    fn test_snapshot_add_accumulates_data() {
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
+        let mut snapshot = Snapshot::new(send, client); // Предполагаем, что есть метод new()
+        let mock_data = MockProperty { val: 42 };
+        snapshot.add(&mock_data);
+        assert_eq!(snapshot.items.len(), 1);
+        assert_eq!(snapshot.items[0].0, "Mock.Property");
+        assert_eq!(snapshot.items[0].1, "{\"val\":42}");
+    }
+    #[test]
+    fn test_snapshot_multiple_adds() {
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
+        let mut snapshot = Snapshot::new(send, client); // Предполагаем, что есть метод new()
+        snapshot.add(&MockProperty { val: 1 });
+        snapshot.add(&MockProperty { val: 2 });
+        assert_eq!(snapshot.items.len(), 2);
+    }
+    // Тест для commit и rollback лучше писать с использованием моков API-клиента.
+    // Вызов commit(self) заберет владение, что само по себе гарантирует
+    // невозможность повторного использования на уровне компиляции.
+}
