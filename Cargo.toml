@@ -1,0 +1,7 @@
+edition = "2024"
+
+[workspace]
+members = [
+    "sal-context-macros",
+    "use-context",
+]
