@@ -1,10 +1,10 @@
 use get_size::GetSize;
 use sal_context_macros::ContextAccess;
 use sal_core::error::Error;
-use sal_sync::sync::RwLock;
+use sal_sync::sync::{RwLock, channel::Sender};
 use std::{fmt::Debug, sync::Arc};
 
-use crate::{algorithm::{ApparentFrequenciesCtx, Parameters, UnitAreaCtx}, context::InitialCtx};
+use crate::{algorithm::{ApparentFrequenciesCtx, Parameters, UnitAreaCtx}, context::InitialCtx, snapshot::{Snapshot, Event, ApiClient}};
 
 /// Сырой контекст для вычислений
 /// Без изменений берем из SSS
@@ -59,11 +59,12 @@ impl Context {
     }
     /// Returns [ContextTransaction] to start a transaction
     /// - [ContextTransaction] - accumulates multiple results to be applied to the [Context] later by calling [ContextTransaction]`.commit` or `.rollback`
-    pub fn transaction(&self) -> ContextTransaction {
+    pub fn transaction(&self, link: Sender<Event>, api_client: Arc<ApiClient>) -> ContextTransaction {
         let current = self.raw.read();
         ContextTransaction {
             origin: Arc::clone(&self.raw),
             state: (**current).clone(),
+            snapshot: Snapshot::new(link, api_client)
         }
     }
     ///
@@ -98,6 +99,8 @@ pub struct ContextTransaction {
     origin: Arc<RwLock<Arc<RawContext>>>,
     // Локальная копия для внесения изменений
     state: RawContext,
+    // Снимок данных для DB и UI
+    pub snapshot: Snapshot,
 }
 impl ContextTransaction {
     /// Complete transaction, apply all changes to the [Context]
@@ -156,6 +159,8 @@ pub trait ContextRead<T> {
 /// Basic tests
 #[cfg(test)]
 mod tests {
+    use sal_sync::sync::channel;
+
     use super::*;
     // Для тестов нам потребуется создать базовый InitialCtx, если у него нет Default
     // Предполагаем, что InitialCtx::default() доступен, так как он используется в Context::default()
@@ -168,7 +173,9 @@ mod tests {
     #[test]
     fn test_successful_commit() {
         let ctx = Context::default();
-        let tx = ctx.transaction();
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
+        let tx = ctx.transaction(send, client);
         // В рамках теста транзакция ничего не меняет, кроме версии
         let result = tx.commit();
         assert!(result.is_ok(), "Commit should succeed on untouched context");
@@ -178,9 +185,11 @@ mod tests {
     #[test]
     fn test_concurrent_conflict_resolution() {
         let ctx = Context::default();
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
         // Создаем две независимые транзакции из одной отправной точки (version = 0)
-        let tx1 = ctx.transaction();
-        let tx2 = ctx.transaction();
+        let tx1 = ctx.transaction(send.clone(), client.clone());
+        let tx2 = ctx.transaction(send, client);
         // Первая транзакция успешно завершается
         assert!(tx1.commit().is_ok(), "First commit should succeed");
         assert_eq!(ctx.raw.read().version, 1, "Version is now 1");
@@ -196,8 +205,10 @@ mod tests {
     #[test]
     fn test_force_commit_overrides_conflict() {
         let ctx = Context::default();
-        let tx1 = ctx.transaction();
-        let tx2 = ctx.transaction();
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
+        let tx1 = ctx.transaction(send.clone(), client.clone());
+        let tx2 = ctx.transaction(send, client);
         // Первая транзакция меняет версию на 1
         assert!(tx1.commit().is_ok());
         // Вторая транзакция игнорирует конфликт и форсирует запись
@@ -210,7 +221,9 @@ mod tests {
     #[test]
     fn test_rollback_drops_changes() {
         let ctx = Context::default();
-        let tx = ctx.transaction();
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
+        let tx = ctx.transaction(send, client);
         let initial_version = ctx.raw.read().version;
         tx.rollback();
         // Проверяем, что оригинал не изменился
@@ -221,16 +234,21 @@ mod tests {
         use std::thread;
         // Оборачиваем Context в Arc для раздачи по потокам
         let ctx = Arc::new(Context::default());
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
         let mut handles = vec![];
         let num_threads = 10;
         let commits_per_thread = 100;
         for _ in 0..num_threads {
             let thread_ctx = Arc::clone(&ctx);
-            handles.push(thread::spawn(move || {
+            handles.push(thread::spawn({
+                let send = send.clone();
+                let client = client.clone();
+                move || {
                 for _ in 0..commits_per_thread {
                     loop {
                         // 1. Берем снимок (старт транзакции)
-                        let tx = thread_ctx.transaction();
+                        let tx = thread_ctx.transaction(send.clone(), client.clone());
                         // 2. Имитируем небольшую задержку на "вычисления"
                         thread::yield_now();
                         // 3. Пробуем зафиксировать результат
@@ -240,7 +258,7 @@ mod tests {
                         }
                     }
                 }
-            }));
+            }}));
         }
         // Дожидаемся завершения всех потоков
         for handle in handles {
@@ -259,16 +277,21 @@ mod tests {
     #[test]
     fn test_concurrent_high_load_occ() {
         let initial = InitialCtx::default();
+        let (send, _) = channel::unbounded();
+        let client = Arc::new(ApiClient {});
         let context = Arc::new(Context::new(initial));
         let num_threads = 10;
         let updates_per_thread = 100;
         let mut handles = vec![];
         for _ in 0..num_threads {
             let ctx_clone = Arc::clone(&context);
-            handles.push(std::thread::spawn(move || {
+            handles.push(std::thread::spawn({
+                let send = send.clone();
+                let client = client.clone();
+                move || {
                 for _ in 0..updates_per_thread {
                     loop {
-                        let tx = ctx_clone.transaction();
+                        let tx = ctx_clone.transaction(send.clone(), client.clone());
                         // Имитируем успешный коммит. В реальной жизни здесь будут изменения данных.
                         match tx.commit() {
                             Ok(_) => break, // Успех, идем к следующему обновлению
@@ -276,12 +299,12 @@ mod tests {
                         }
                     }
                 }
-            }));
+            }}));
         }
         for handle in handles {
             handle.join().unwrap();
         }
-        let final_tx = context.transaction();
+        let final_tx = context.transaction(send, client);
         // Проверяем, что ни одна транзакция не потерялась
         assert_eq!(final_tx.state.version, num_threads * updates_per_thread);
     }

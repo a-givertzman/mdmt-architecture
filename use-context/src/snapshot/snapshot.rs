@@ -71,8 +71,9 @@ pub trait Properties {
 //
 // Temprorary structures
 
-/// To be removed
-struct Event {}
+/// ### Fake ! To be removed...
+/// Replace it with the real `Event`
+pub struct Event {}
 impl From<&Vec<(&'static str, String)>> for Event {
     fn from(value: &Vec<(&'static str, String)>) -> Self {
         Self {  }
@@ -80,8 +81,9 @@ impl From<&Vec<(&'static str, String)>> for Event {
 }
 /// To be removed
 struct Sql();
-/// To be removed
-struct ApiClient {}
+/// ### Fake ! To be removed...
+/// Replace it with the real `ApiClient`
+pub struct ApiClient {}
 impl ApiClient {
     pub fn request(&self, sql: Sql) -> Result<(), Error> {
         Ok(())

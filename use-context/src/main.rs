@@ -6,10 +6,11 @@ use std::{sync::Arc, time::Instant};
 
 use debugging::session::debug_session::{DebugSession, LogLevel};
 use sal_core::error::Error;
+use sal_sync::sync::channel;
 
 use crate::{
     algorithm::{ApparentFrequenciesCtx, Bound, Bounds, Position, UnitAreaCtx},
-    context::{Context, ContextRead, ContextWrite, IecId, InitialCtx}, snapshot::Properties,
+    context::{Context, ContextRead, ContextWrite, IecId, InitialCtx}, snapshot::{ApiClient, Properties},
 };
 
 
@@ -39,9 +40,11 @@ fn main() -> Result<(), Error> {
         ]
     )?;
     let ctx = Arc::new(Context::new(InitialCtx::new(ship_id, project_id, bounds)));
+    let (send, _) = channel::unbounded();
+    let client = Arc::new(ApiClient {});
     let h1 = std::thread::spawn({
         let t = Instant::now();
-        let ctx = ctx.transaction();
+        let ctx = ctx.transaction(send.clone(), client.clone());
         log::debug!("Start Transaction elapsed: {:?}", t.elapsed());
         move || {
             let initial: InitialCtx = ctx.read();
@@ -68,7 +71,7 @@ fn main() -> Result<(), Error> {
     }});
     let h2 = std::thread::spawn({
         let t = Instant::now();
-        let ctx = ctx.transaction();
+        let ctx = ctx.transaction(send, client);
         log::debug!("Start Transaction elapsed: {:?}", t.elapsed());
         move || {
             let initial: InitialCtx = ctx.read();
