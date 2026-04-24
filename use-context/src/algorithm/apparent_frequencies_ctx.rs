@@ -1,5 +1,5 @@
 use get_size::GetSize;
-use sal_context_macros::ContextProperties;
+use context_macros::ContextProperties;
 use serde::Serialize;
 
 ///

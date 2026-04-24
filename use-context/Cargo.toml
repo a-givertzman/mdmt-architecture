@@ -1,7 +1,7 @@
 [package]
 name = "mdmt-architecture"
-version = "0.1.0"
-edition = "2024"
+edition.workspace = true
+version.workspace = true
 publish = false
 
 [dependencies]
@@ -14,7 +14,7 @@ debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "
 api-tools = { git = "https://github.com/a-givertzman/rust-api-tools.git", tag = "0.2.2" }
 sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.1.0" }
 sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.3.1" }
-sal-context-macros = { path = "../sal-context-macros" }
+context-macros = { path = "../context-macros" }
 
 #
 # Serde

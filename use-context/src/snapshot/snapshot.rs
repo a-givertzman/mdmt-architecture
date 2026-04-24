@@ -106,7 +106,7 @@ impl Upsert {
 /// Basic tests
 #[cfg(test)]
 mod snapshot_tests {
-    use sal_context_macros::ContextProperties;
+    use context_macros::ContextProperties;
     use sal_sync::sync::channel;
     use serde::Serialize;
     use super::*;

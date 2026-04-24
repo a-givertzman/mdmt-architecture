@@ -1,5 +1,5 @@
 use get_size::GetSize;
-use sal_context_macros::ContextAccess;
+use context_macros::ContextAccess;
 use sal_core::error::Error;
 use sal_sync::sync::{RwLock, channel::Sender};
 use std::{fmt::Debug, sync::Arc};
