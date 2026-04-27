@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{kernel::state::ExitNotify, services::{Service, entity::{Name, Object}}, sync::{Handles, Owner}, thread_pool::Scheduler};
 
-use crate::{kernel::types::channel::{self, Receiver, RecvTimeoutError, Sender}, domain::{Event, ProjectNodeStatus, ProjectTreeConf} };
+use crate::{domain::{Event, ProjectNodeStatus, ProjectNodes, ProjectTreeConf}, kernel::types::channel::{self, Receiver, RecvTimeoutError, Sender} };
 
 ///
 /// ### Service | ProjectTree
@@ -21,6 +21,7 @@ pub struct ProjectTree {
     link_tx: Sender<(usize, ProjectNodeStatus)>,
     /// Тут получаем статусы нод от расчетов
     link_rx: Owner<Receiver<(usize, ProjectNodeStatus)>>,
+    nodes: Arc<ProjectNodes>,
     scheduler: Scheduler,
     handles: Handles<()>,
     exit: Arc<ExitNotify>,
@@ -41,6 +42,7 @@ impl ProjectTree {
             client_link: Owner::new(client),
             link_tx,
             link_rx: Owner::new(rx),
+            nodes: Arc::new(ProjectNodes::new(&dbg)),
             scheduler,
             handles: Handles::new(&dbg),
             exit: Arc::new(ExitNotify::new(&dbg,None, None)),
@@ -55,7 +57,7 @@ impl ProjectTree {
     /// - В каждом цикле (64...120мс) вычитываться полностью.
     /// - Пересчет делаем по всем полученным событиям
     /// - Затем отправка статусов в UI
-    fn evaluate_statuses(nodes: Vec<_>, node_id: usize, node_status: ProjectNodeStatus) {
+    fn evaluate_statuses(nodes: Arc<ProjectNodes>, node_id: usize, node_status: ProjectNodeStatus) {
 
     }
 }
