@@ -1,5 +1,5 @@
-use get_size::GetSize;
 use context_macros::ContextProperties;
+use get_size::GetSize;
 use serde::Serialize;
 
 use crate::algorithm::Moment;

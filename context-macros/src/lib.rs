@@ -37,7 +37,7 @@ pub fn derive_context_access(input: TokenStream) -> TokenStream {
         if gen_write {
             let write_impl = if is_option {
                 quote! {
-                    impl crate::context::ContextWrite<#inner_type> for crate::context::ContextTransaction {
+                    impl crate::domain::ContextWrite<#inner_type> for crate::domain::ContextTransaction {
                         fn write(mut self, value: #inner_type) -> Result<Self, sal_core::error::Error> {
                             self.state.#field_name = Some(value);
                             Result::Ok(self)
@@ -46,7 +46,7 @@ pub fn derive_context_access(input: TokenStream) -> TokenStream {
                 }
             } else {
                 quote! {
-                    impl crate::context::ContextWrite<#inner_type> for crate::context::ContextTransaction {
+                    impl crate::domain::ContextWrite<#inner_type> for crate::domain::ContextTransaction {
                         fn write(mut self, value: #inner_type) -> Result<Self, sal_core::error::Error> {
                             self.state.#field_name = value;
                             Result::Ok(self)
@@ -59,7 +59,7 @@ pub fn derive_context_access(input: TokenStream) -> TokenStream {
         if gen_read {
             let read_ref_impl = if is_option {
                 quote! {
-                    impl crate::context::ContextReadRef<#inner_type> for crate::context::ContextTransaction {
+                    impl crate::domain::ContextReadRef<#inner_type> for crate::domain::ContextTransaction {
                         fn read_ref(&self) -> &#inner_type {
                             self.state.#field_name.as_ref().expect(concat!("Value is None: ", stringify!(#field_name)))
                         }
@@ -67,7 +67,7 @@ pub fn derive_context_access(input: TokenStream) -> TokenStream {
                 }
             } else {
                 quote! {
-                    impl crate::context::ContextReadRef<#inner_type> for crate::context::ContextTransaction {
+                    impl crate::domain::ContextReadRef<#inner_type> for crate::domain::ContextTransaction {
                         fn read_ref(&self) -> &#inner_type {
                             &self.state.#field_name
                         }
@@ -76,7 +76,7 @@ pub fn derive_context_access(input: TokenStream) -> TokenStream {
             };
             let read_impl = if is_option {
                 quote! {
-                    impl crate::context::ContextRead<#inner_type> for crate::context::ContextTransaction {
+                    impl crate::domain::ContextRead<#inner_type> for crate::domain::ContextTransaction {
                         fn read(&self) -> #inner_type {
                             self.state.#field_name.clone().expect(concat!("Value is None: ", stringify!(#field_name)))
                         }
@@ -84,7 +84,7 @@ pub fn derive_context_access(input: TokenStream) -> TokenStream {
                 }
             } else {
                 quote! {
-                    impl crate::context::ContextRead<#inner_type> for crate::context::ContextTransaction {
+                    impl crate::domain::ContextRead<#inner_type> for crate::domain::ContextTransaction {
                         fn read(&self) -> #inner_type {
                             self.state.#field_name.clone()
                         }
@@ -132,12 +132,12 @@ pub fn derive_context_properties(input: TokenStream) -> TokenStream {
         return TokenStream::from(err);
     };
     let expanded = quote! {
-        impl crate::context::IecId for #name {
+        impl crate::domain::IecId for #name {
             fn iec_id() -> &'static str {
                 #key
             }
         }
-        impl crate::snapshot::Properties for #name {
+        impl crate::domain::Properties for #name {
             ///
             /// ### Сериализует поля данной структуры
             /// - Возвращает в виде вектора пар (IEC key, JSON value).
@@ -148,7 +148,7 @@ pub fn derive_context_properties(input: TokenStream) -> TokenStream {
                 std::vec![(#key, json_string)]
             }
         }
-        impl crate::snapshot::Properties for &#name {
+        impl crate::domain::Properties for &#name {
             ///
             /// ### Сериализует поля данной структуры
             /// - Возвращает в виде вектора пар (IEC key, JSON value).
