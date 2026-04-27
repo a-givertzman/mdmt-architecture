@@ -24,6 +24,15 @@ impl Snapshot {
         }
     }
     ///
+    /// Reads specified properties from the database
+    pub fn fetch(&self, keys: Vec<&str>) -> Result<(), Error> {
+        if keys.is_empty() {
+            self.api_client.request(Sql(format!("select all")))
+        } else {
+            self.api_client.request(Sql(format!("select where key in {:?}", keys)))
+        }
+    }
+    ///
     /// Adds a [Context] member to the transaction
     pub fn add(&mut self, items: impl Properties) {
         for item in items.properties() {
@@ -80,7 +89,7 @@ impl From<&Vec<(&'static str, String)>> for Event {
     }
 }
 /// To be removed
-struct Sql();
+struct Sql(pub String);
 /// ### Fake ! To be removed...
 /// Replace it with the real `ApiClient`
 pub struct ApiClient {}
@@ -99,7 +108,7 @@ impl Upsert {
         
     }
     pub fn build(&self) -> Sql {
-        Sql()
+        Sql("".into())
     }
 }
 ///
