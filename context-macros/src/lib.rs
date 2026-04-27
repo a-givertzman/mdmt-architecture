@@ -2,7 +2,23 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
-
+///
+/// ### Создает методы безопасного доступа к полям ContextTransacrion
+/// 
+/// * Добавьте `ContextAccess` в derive `RawContext`
+/// * Добавьте атрибут к полю для которого нужен доступ:
+///     - **`read`**  =>  impl `ContextRead<T> for ContextTransacrion`
+///     - **`read_ref`**  =>  impl `ContextReadRef<T> for ContextTransacrion`
+///     - **`write`** =>  impl  `ContextWrite<T> for ContextTransacrion`
+///
+/// **Пример:**
+/// ```ignore
+/// #[derive(ContextAccess)]
+/// pub struct RawContext {
+///     #[context(read, read_ref, write)]
+///     pub(super) property: Option<ProperyCtx>,
+/// }
+/// ```
 #[proc_macro_derive(ContextAccess, attributes(context))]
 pub fn derive_context_access(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
@@ -100,6 +116,7 @@ pub fn derive_context_access(input: TokenStream) -> TokenStream {
     };
     TokenStream::from(expanded)
 }
+//
 fn extract_option_type(ty: &syn::Type) -> (&syn::Type, bool) {
     if let syn::Type::Path(type_path) = ty {
         if type_path.path.segments.len() == 1 && type_path.path.segments[0].ident == "Option" {
@@ -112,7 +129,12 @@ fn extract_option_type(ty: &syn::Type) -> (&syn::Type, bool) {
     }
     (ty, false)
 }
-
+///
+/// ### Макрос создает `impl crate::domain::Properties for Type`
+/// 
+/// `crate::domain::Properties` сериализует поля данной структуры
+/// - Возвращает в виде вектора пар (IEC key, JSON value).
+/// - Предназначено для формирования консистентного снимка (Snapshot) и отправки на UI/DB.
 #[proc_macro_derive(ContextProperties, attributes(iec_id))]
 pub fn derive_context_properties(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

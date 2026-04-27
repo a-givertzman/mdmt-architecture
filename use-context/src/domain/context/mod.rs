@@ -17,7 +17,7 @@ use sal_core::error::Error;
 pub trait IecId {
     fn iec_id() -> &'static str;
 }
-/// Provides restricted write access to the [ContextTransaction] members
+/// Provides restricted write access to the [ContextTransaction]
 pub trait ContextWrite<T> where Self: Sized {
     fn write(self, value: T) -> Result<Self, Error>;
 }

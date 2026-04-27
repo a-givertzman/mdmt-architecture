@@ -1,10 +1,9 @@
 use get_size::GetSize;
-use context_macros::ContextAccess;
 use sal_core::error::Error;
 use sal_sync::sync::{RwLock, channel::Sender};
 use std::{fmt::Debug, sync::Arc};
 
-use crate::{algorithm::{ApparentFrequenciesCtx, Parameters, UnitAreaCtx}, domain::{ApiClient, ContextTransaction, Event, InitialCtx, RawContext, Snapshot}};
+use crate::{algorithm::Parameters, domain::{ApiClient, ContextTransaction, Event, InitialCtx, RawContext, Snapshot}};
 
 /// Контекст для вычислений
 /// - Потокобезопасен
