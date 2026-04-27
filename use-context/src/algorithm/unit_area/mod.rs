@@ -4,3 +4,4 @@ mod ctx;
 mod eval;
 
 pub use ctx::*;
+pub use eval::*;

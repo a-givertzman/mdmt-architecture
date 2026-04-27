@@ -1,8 +1,8 @@
 use std::{sync::Arc, time::Duration};
-use sal_core::{dbg::Dbg, error::{self, Error}};
+use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{kernel::state::ExitNotify, services::{Service, entity::{Name, Object}}, sync::{Handles, Owner}, thread_pool::Scheduler};
 
-use crate::{kernel::types::channel::{self, Receiver, RecvTimeoutError, Sender}, project_tree::ProjectTreeConf, snapshot::Event};
+use crate::{kernel::types::channel::{self, Receiver, RecvTimeoutError, Sender}, domain::{Event, ProjectNodeStatus, ProjectTreeConf} };
 
 ///
 /// ### Service | ProjectTree
@@ -18,9 +18,9 @@ pub struct ProjectTree {
     /// Канал для отправки событий слиенту
     client_link: Owner<Sender<Event>>,
     /// Внешний кончик канала, в который расветы будут отправлять статусы нод
-    link_tx: Sender<Event>,
+    link_tx: Sender<(usize, ProjectNodeStatus)>,
     /// Тут получаем статусы нод от расчетов
-    link_rx: Owner<Receiver<Event>>,
+    link_rx: Owner<Receiver<(usize, ProjectNodeStatus)>>,
     scheduler: Scheduler,
     handles: Handles<()>,
     exit: Arc<ExitNotify>,
@@ -31,11 +31,12 @@ pub struct ProjectTree {
 impl ProjectTree {
     //
     /// Crteates new instance of the [ProjectTree] 
-    pub fn new(conf: ProjectTreeConf, client: Sender<Event>, scheduler: Scheduler) -> Self {
-        let dbg = Dbg::new(conf.name.parent(), conf.name.me());
+    pub fn new(parent: impl Into<String>, conf: ProjectTreeConf, client: Sender<Event>, scheduler: Scheduler) -> Self {
+        let name = Name::new(parent, "ProjectTree");
+        let dbg = Dbg::new(name.parent(), name.me());
         let (link_tx, rx) = channel::channel::unbounded();
         Self {
-            name: conf.name.clone(),
+            name,
             conf,
             client_link: Owner::new(client),
             link_tx,
@@ -45,6 +46,17 @@ impl ProjectTree {
             exit: Arc::new(ExitNotify::new(&dbg,None, None)),
             dbg,
         }
+    }
+    ///
+    /// ### Агрегация статусов дерева наверх
+    /// 
+    /// **Механизм агрегации**
+    /// - Происходит по события в PT-link, это очередь событий
+    /// - В каждом цикле (64...120мс) вычитываться полностью.
+    /// - Пересчет делаем по всем полученным событиям
+    /// - Затем отправка статусов в UI
+    fn evaluate_statuses(nodes: Vec<_>, node_id: usize, node_status: ProjectNodeStatus) {
+
     }
 }
 //
@@ -78,6 +90,7 @@ impl Service for ProjectTree {
             let link_rx = self.link_rx.take().ok_or(error.err("Can't take link_rx from self"))?;
             let client_link = self.client_link.take().ok_or(error.err("Can't take client_link from self"))?;
             let recv_timeout = Duration::from_millis(100);
+            let nodes = todo!();
             move || {
                 log::info!("{dbg}.run | Ready");
                 while !exit.get() {
@@ -94,7 +107,13 @@ impl Service for ProjectTree {
                             },
                         }
                     }
-                    for e in events {
+                    // Пересчет статусов нод дерева
+                    for (node_id, node_status) in events {
+                        Self::evaluate_statuses(nodes, node_id, node_status);
+                    }
+                    // Формирование всех изменившихся статусов нод дерева
+                    let client_events = todo!();
+                    for e in client_events {
                         if let Err(err) = client_link.send(e) {
                             log::warn!("{dbg}.run | Can't send event to the clint: {err}");
                         }

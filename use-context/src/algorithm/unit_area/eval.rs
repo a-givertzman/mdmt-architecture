@@ -1,4 +1,4 @@
-use crate::{algorithm::{Bound, Moment, UnitAreaCtx}, context::{ContextReadRef, ContextWrite, InitialCtx}, kernel::{Eval, types::eval_result::EvalResult}};
+use crate::{algorithm::{Bound, Moment, UnitAreaCtx}, domain::{ContextReadRef, ContextWrite, InitialCtx}, kernel::{Eval, types::eval_result::EvalResult}};
 use sal_core::{dbg::Dbg, error::Error};
 ///
 /// Площади боковой поверхности грузов

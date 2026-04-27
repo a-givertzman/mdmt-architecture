@@ -4,36 +4,7 @@ use sal_core::error::Error;
 use sal_sync::sync::{RwLock, channel::Sender};
 use std::{fmt::Debug, sync::Arc};
 
-use crate::{algorithm::{ApparentFrequenciesCtx, Parameters, UnitAreaCtx}, context::InitialCtx, snapshot::{Snapshot, Event, ApiClient}};
-
-/// Сырой контекст для вычислений
-/// Без изменений берем из SSS
-#[derive(Debug, Clone, Default, ContextAccess, GetSize)]
-pub struct RawContext {
-    /// Контроль версий для консистентности
-    #[context(skip)]
-    pub(super) version: usize,
-    #[context(read, read_ref)]
-    pub(super) initial: InitialCtx,
-    #[context(read, read_ref, write)]
-    pub(super) apparent_frequencies: Option<ApparentFrequenciesCtx>,
-    #[context(read, read_ref, write)]
-    pub(super) parameters: Parameters,
-    #[context(read, read_ref, write)]
-    pub(super) unit_area: Option<UnitAreaCtx>,
-    // ...
-}
-impl RawContext {
-    ///
-    /// New instance [RawContext]
-    /// - 'initial' - [InitialCtx] instance, where store initial data
-    pub fn new(initial: InitialCtx) -> Self {
-        Self {
-            initial,
-            ..Self::default()
-        }
-    }
-}
+use crate::{algorithm::{ApparentFrequenciesCtx, Parameters, UnitAreaCtx}, domain::{ApiClient, ContextTransaction, Event, InitialCtx, RawContext, Snapshot}};
 
 /// Контекст для вычислений
 /// - Потокобезопасен
@@ -92,68 +63,6 @@ impl Debug for Context {
     }
 }
 
-///
-/// Transaction for the [Context]
-pub struct ContextTransaction {
-    // Владеем ссылкой на хранилище
-    origin: Arc<RwLock<Arc<RawContext>>>,
-    // Локальная копия для внесения изменений
-    state: RawContext,
-    // Снимок данных для DB и UI
-    pub snapshot: Snapshot,
-}
-impl ContextTransaction {
-    /// Complete transaction, apply all changes to the [Context]
-    /// - Only if the original context wasn't changed
-    pub fn commit(mut self) -> Result<(), (Self, Error)> {
-        let mut origin_lock = self.origin.write();
-        let origin_version = origin_lock.version;
-        if origin_version == self.state.version {
-            self.state.version += 1;
-            *origin_lock = Arc::new(self.state);
-            Ok(())
-        } else {
-            drop(origin_lock);
-            let err = Error::new("ContextTransaction", "commit")
-                .err(format!("Context already was changed, origin ver {}, but staged was {}", origin_version, self.state.version));
-            Err((self, err))
-        }
-    }
-    /// Complete transaction, apply all changes to the [Context]
-    /// - Even if the original context was changed
-    pub fn force_commit(mut self) -> Result<(), Error> {
-        let mut origin_lock = self.origin.write();
-        self.state.version = origin_lock.version + 1;
-        *origin_lock = Arc::new(self.state);
-        Ok(())
-    }
-    /// Cancel transaction, drop all changes
-    pub fn rollback(self) {
-        drop(self)
-    }
-}
-impl Debug for ContextTransaction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ContextTransaction").field("origin", &(*self.origin.read())).field("state", &self.state).finish()
-    }
-}
-///
-/// Provides IEC key of the Context members
-pub trait IecId {
-    fn iec_id() -> &'static str;
-}
-/// Provides restricted write access to the [ContextTransaction] members
-pub trait ContextWrite<T> where Self: Sized {
-    fn write(self, value: T) -> Result<Self, Error>;
-}
-/// Provides simple read access to the [ContextTransaction] members
-pub trait ContextReadRef<T> {
-    fn read_ref(&self) -> &T;
-}
-/// Provides simple read access to the [ContextTransaction] members
-pub trait ContextRead<T> {
-    fn read(&self) -> T;
-}
 
 /// 
 /// Basic tests

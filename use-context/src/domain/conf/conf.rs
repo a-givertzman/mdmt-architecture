@@ -3,7 +3,7 @@ use std::{fs::OpenOptions, path::Path};
 use sal_core::error::Error;
 use serde::Deserialize;
 
-use crate::project_tree::ProjectTreeConf;
+use crate::domain::ProjectTreeConf;
 
 ///
 /// Application configuration

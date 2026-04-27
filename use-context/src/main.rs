@@ -1,9 +1,6 @@
 mod algorithm;
-mod conf;
-mod context;
+mod domain;
 mod kernel;
-mod snapshot;
-mod project_tree;
 
 use std::{sync::Arc, time::Instant};
 
@@ -12,7 +9,8 @@ use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{sync::channel, thread_pool::ThreadPool};
 
 use crate::{
-    algorithm::{ApparentFrequenciesCtx, Bound, Bounds, Position, UnitAreaCtx}, conf::Conf, context::{Context, ContextRead, ContextWrite, IecId, Initial, InitialCtx}, project_tree::ProjectTree, snapshot::{ApiClient, Properties}
+    algorithm::{ApparentFrequenciesCtx, Bound, Bounds, Position, UnitAreaCtx, UnitAreaEval},
+    domain::{Conf, Context, ContextRead, ContextWrite, IecId, Initial, InitialCtx, ProjectTree, ApiClient, Properties},
 };
 
 
@@ -25,7 +23,9 @@ fn main() -> Result<(), Error> {
     let project_id = "Project";
     let conf = Conf::read("./config.yaml").map_err(|err| Error::new(&dbg, ""))?;
     let tp = ThreadPool::new(&dbg, conf.thread_pool);
+    let client = todo!();
     let project_tree = ProjectTree::new(
+        &dbg,
         conf.project_tree,
         client,
         tp.scheduler(),
