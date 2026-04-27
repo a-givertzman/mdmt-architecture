@@ -3,6 +3,8 @@ use std::sync::Arc;
 use sal_core::error::Error;
 use sal_sync::sync::channel::Sender;
 
+use crate::domain::Properties;
+
 ///
 /// Transactional [Snapshot]
 /// - Accumulating calculation results.
@@ -69,12 +71,6 @@ impl Snapshot {
     pub fn rollback(self) {
         drop(self);
     }
-}
-///
-/// Trait for converting [Context] members into key-value properties
-/// - Context -> `DB.properties` adapter
-pub trait Properties {
-    fn properties(&self) -> Vec<(&'static str, String)>;
 }
 
 //
