@@ -13,13 +13,13 @@ pub struct RawContext {
     /// Контроль версий для консистентности
     #[context(skip)]
     pub(super) version: usize,
-    #[context(read)]
+    #[context(read, read_ref)]
     pub(super) initial: InitialCtx,
-    #[context(read, write)]
+    #[context(read, read_ref, write)]
     pub(super) apparent_frequencies: Option<ApparentFrequenciesCtx>,
-    #[context(read, write)]
+    #[context(read, read_ref, write)]
     pub(super) parameters: Parameters,
-    #[context(read, write)]
+    #[context(read, read_ref, write)]
     pub(super) unit_area: Option<UnitAreaCtx>,
     // ...
 }

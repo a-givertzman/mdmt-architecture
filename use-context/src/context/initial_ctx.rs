@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use get_size::GetSize;
 
 use crate::algorithm::Bounds;
+use crate::algorithm::LoadUnitData;
 use crate::algorithm::Ship;
 use crate::algorithm::ShipType;
 ///
@@ -30,8 +31,8 @@ pub struct InitialCtx {
     // pub bulk: Option<HashMap<usize, LoadBulkData>>,
     // /// Переменная нагрузка на судно - жидкие грузы
     // pub liquid: Option<HashMap<usize, LoadLiquidData>>,
-    // /// Переменная нагрузка на судно - штучные грузы
-    // pub unit: Option<Vec<LoadUnitData>>,
+    /// Переменная нагрузка на судно - штучные грузы
+    pub unit: Option<Vec<LoadUnitData>>,
     // /// Переменная нагрузка на судно - газообразные грузы
     // pub gaseous: Option<HashMap<usize, LoadGaseousData>>,
     // /// Композитные помещения из частей трюма, [код композитного помещения, [код части трюма]]

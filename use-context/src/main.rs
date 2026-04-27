@@ -1,16 +1,18 @@
 mod algorithm;
+mod conf;
 mod context;
+mod kernel;
 mod snapshot;
+mod project_tree;
 
 use std::{sync::Arc, time::Instant};
 
 use debugging::session::debug_session::{DebugSession, LogLevel};
-use sal_core::error::Error;
-use sal_sync::sync::channel;
+use sal_core::{dbg::Dbg, error::Error};
+use sal_sync::{sync::channel, thread_pool::ThreadPool};
 
 use crate::{
-    algorithm::{ApparentFrequenciesCtx, Bound, Bounds, Position, UnitAreaCtx},
-    context::{Context, ContextRead, ContextWrite, IecId, InitialCtx}, snapshot::{ApiClient, Properties},
+    algorithm::{ApparentFrequenciesCtx, Bound, Bounds, Position, UnitAreaCtx}, conf::Conf, context::{Context, ContextRead, ContextWrite, IecId, Initial, InitialCtx}, project_tree::ProjectTree, snapshot::{ApiClient, Properties}
 };
 
 
@@ -18,8 +20,16 @@ fn main() -> Result<(), Error> {
     DebugSession::new()
         .filter(LogLevel::Debug)
         .init();
+    let dbg = Dbg::own("main");
     let ship_id = "Ship";
     let project_id = "Project";
+    let conf = Conf::read("./config.yaml").map_err(|err| Error::new(&dbg, ""))?;
+    let tp = ThreadPool::new(&dbg, conf.thread_pool);
+    let project_tree = ProjectTree::new(
+        conf.project_tree,
+        client,
+        tp.scheduler(),
+    );
     let bounds = Bounds::new(
         vec![
             Bound::new(0.0, 1.0)?,                         // 1. Процент
@@ -40,6 +50,14 @@ fn main() -> Result<(), Error> {
         ]
     )?;
     let ctx = Arc::new(Context::new(InitialCtx::new(ship_id, project_id, bounds)));
+    let calculus = UnitAreaEval::new(
+        &dbg,
+        Initial::new(
+            &dbg,
+            ctx.clone(),
+        ),
+    );
+    calculus.eval(());
     let (send, _) = channel::unbounded();
     let client = Arc::new(ApiClient {});
     let h1 = std::thread::spawn({
