@@ -38,6 +38,7 @@ strum_macros = "~0.28"
 kanal = "~0.1"
 papaya = "~0.2"
 parking_lot = "~0.12"
+arc-swap = "~1.8"
 
 #
 # Diagnistic

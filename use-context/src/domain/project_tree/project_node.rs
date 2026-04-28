@@ -2,6 +2,7 @@ use crate::domain::{ProjectNodeKind, ProjectNodeStatus};
 
 ///
 /// ### Узел дерева проекта
+#[derive(Debug, Clone, Copy)]
 pub struct ProjectNode {
     ///  - Идентификатор уникальный в пределах проекта (db.project_nodes.id)
     id: usize,

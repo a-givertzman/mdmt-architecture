@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{kernel::state::ExitNotify, services::{Service, entity::{Name, Object}}, sync::{Handles, Owner}, thread_pool::Scheduler};
 
-use crate::{domain::{Event, ProjectNodeStatus, ProjectNodes, ProjectTreeConf}, kernel::types::channel::{self, Receiver, RecvTimeoutError, Sender} };
+use crate::{domain::{Event, ProjectNodeStatus, ProjectNodes, ProjectTreeConf}, kernel::types::{channel::{self, Receiver, RecvTimeoutError, Sender}, fx_map::FxHashMap} };
 
 ///
 /// ### Service | ProjectTree
@@ -50,15 +50,14 @@ impl ProjectTree {
         }
     }
     ///
-    /// ### Агрегация статусов дерева наверх
-    /// 
-    /// **Механизм агрегации**
-    /// - Происходит по события в PT-link, это очередь событий
-    /// - В каждом цикле (64...120мс) вычитываться полностью.
-    /// - Пересчет делаем по всем полученным событиям
-    /// - Затем отправка статусов в UI
-    fn evaluate_statuses(nodes: Arc<ProjectNodes>, node_id: usize, node_status: ProjectNodeStatus) {
-
+    /// Формирование эвентов статусов для фронта
+    /// - `prev` - версии нод до пересчета
+    fn prepare_status_events(nodes: &Arc<ProjectNodes>) -> Vec<Event> {
+        // Прверяем если статус ноды изменился, то генерим эвент с новым статусом
+        let nodes = nodes.get_updated();
+        nodes.into_iter().map(|(iec_id, node)| {
+            Event {}
+        }).collect()
     }
 }
 //
@@ -92,7 +91,7 @@ impl Service for ProjectTree {
             let link_rx = self.link_rx.take().ok_or(error.err("Can't take link_rx from self"))?;
             let client_link = self.client_link.take().ok_or(error.err("Can't take client_link from self"))?;
             let recv_timeout = Duration::from_millis(100);
-            let nodes = todo!();
+            let nodes = self.nodes.clone();
             move || {
                 log::info!("{dbg}.run | Ready");
                 while !exit.get() {
@@ -111,10 +110,10 @@ impl Service for ProjectTree {
                     }
                     // Пересчет статусов нод дерева
                     for (node_id, node_status) in events {
-                        Self::evaluate_statuses(nodes, node_id, node_status);
+                        nodes.update_status(node_id, node_status);
                     }
                     // Формирование всех изменившихся статусов нод дерева
-                    let client_events = todo!();
+                    let client_events = Self::prepare_status_events(&nodes);
                     for e in client_events {
                         if let Err(err) = client_link.send(e) {
                             log::warn!("{dbg}.run | Can't send event to the clint: {err}");
