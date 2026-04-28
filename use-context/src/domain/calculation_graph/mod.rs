@@ -10,5 +10,6 @@ pub struct CalculationTags {
 ///
 /// Calculation-Graph
 pub trait EvalTags {
-    fn tags(&self) -> CalculationTags;
+    fn tags() -> CalculationTags;
+    // fn tags(&self) -> CalculationTags;
 }

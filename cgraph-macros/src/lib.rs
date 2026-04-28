@@ -256,7 +256,7 @@ pub fn eval_depend(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #ast
         impl crate::domain::EvalTags for #self_ty {
-            fn tags(&self) -> crate::domain::CalculationTags {
+            fn tags() -> crate::domain::CalculationTags {
                 crate::domain::CalculationTags {
                     // quote! автоматически конвертирует String в &'static str литералы
                     read: vec![#(#reads),*],

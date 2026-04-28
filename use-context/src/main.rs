@@ -10,7 +10,7 @@ use sal_sync::{sync::channel, thread_pool::ThreadPool};
 
 use crate::{
     algorithm::{ApparentFrequenciesCtx, Bound, Bounds, Position, UnitAreaCtx, UnitAreaEval},
-    domain::{ApiClient, Conf, Context, ContextRead, ContextWrite, IecId, Initial, InitialCtx, ProjectTree, Properties},
+    domain::{ApiClient, Conf, Context, ContextRead, ContextWrite, EvalTags, IecId, Initial, InitialCtx, ProjectTree, Properties},
     kernel::Eval,
 };
 
@@ -24,7 +24,7 @@ fn main() -> Result<(), Error> {
     let project_id = "Project";
     let conf = Conf::read("./config.yaml").map_err(|err| Error::new(&dbg, ""))?;
     let tp = ThreadPool::new(&dbg, conf.thread_pool);
-    let client = todo!();
+    let (client, _) = channel::unbounded();
     let project_tree = ProjectTree::new(
         &dbg,
         conf.project_tree,
@@ -51,14 +51,14 @@ fn main() -> Result<(), Error> {
         ]
     )?;
     let ctx = Arc::new(Context::new(InitialCtx::new(ship_id, project_id, bounds)));
-    let calculus = UnitAreaEval::new(
-        &dbg,
-        Initial::new(
-            &dbg,
-            ctx.clone(),
-        ),
-    );
-    calculus.eval(());
+    // let calculus = UnitAreaEval::new(
+    //     &dbg,
+    //     Initial::new(
+    //         &dbg,
+    //         ctx.clone(),
+    //     ),
+    // );
+    // calculus.eval(()).unwrap();
     let (send, _) = channel::unbounded();
     let client = Arc::new(ApiClient {});
     let h1 = std::thread::spawn({
@@ -109,6 +109,8 @@ fn main() -> Result<(), Error> {
                 log::warn!("Error: {err}");
             }
     }});
+    let tags = UnitAreaEval::tags();
+    log::info!("UnitArea tags: {:?}", tags);
     h1.join().unwrap();
     h2.join().unwrap();
     println!("Context: {:#?}", ctx);
