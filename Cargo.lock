@@ -1057,6 +1057,7 @@ dependencies = [
  "api-tools 0.2.2",
  "arc-swap",
  "bincode",
+ "cgraph-macros",
  "context-macros",
  "debugging 0.0.1 (git+https://github.com/a-givertzman/rust-debuging.git?tag=0.1.0)",
  "get-size",

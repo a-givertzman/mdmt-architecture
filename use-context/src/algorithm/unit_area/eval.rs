@@ -1,4 +1,5 @@
-use crate::{algorithm::{Bound, Moment, UnitAreaCtx}, domain::{ContextReadRef, ContextWrite, InitialCtx}, kernel::{Eval, types::eval_result::EvalResult}};
+use crate::{algorithm::{Bound, Moment, UnitAreaCtx}, domain::{ContextRead, ContextReadRef, ContextWrite, InitialCtx}, kernel::{Eval, types::eval_result::EvalResult}};
+use cgraph_macros::eval_depend;
 use sal_core::{dbg::Dbg, error::Error};
 ///
 /// Площади боковой поверхности грузов
@@ -23,12 +24,17 @@ impl UnitAreaEval {
 }
 //
 //
+#[eval_depend]
 impl Eval<(), EvalResult> for UnitAreaEval {
     fn eval(&self, _: ()) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {
-                let initial: &InitialCtx = ctx.read_ref();
+                // let initial = ContextReadRef::<InitialCtx>::read_ref(&ctx);
+                let initial = ContextRead::<InitialCtx>::read(&ctx);
+                // let initial: InitialCtx = ctx.read();
+                // let initial = ctx.read_ref();
+                // let initial: &InitialCtx = initial;
                 let unit = match initial.unit.as_ref() {
                     Some(data) => data,
                     None => return Err(error.err("Read unit error: no data!")),
@@ -146,7 +152,8 @@ impl Eval<(), EvalResult> for UnitAreaEval {
                     delta_moment_h,
                     distr_v,
                 };
-                ctx.write(result)
+                ContextWrite::<UnitAreaCtx>::write(ctx, result)
+                // ctx.write(result)
             }
             Err(err) => Err(error.pass_with("Read context error", err)),
         }

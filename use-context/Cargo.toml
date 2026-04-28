@@ -15,6 +15,7 @@ api-tools = { git = "https://github.com/a-givertzman/rust-api-tools.git", tag = 
 sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.1.0" }
 sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.3.1" }
 context-macros = { path = "../context-macros" }
+cgraph-macros = { path = "../cgraph-macros" }
 
 #
 # Serde
