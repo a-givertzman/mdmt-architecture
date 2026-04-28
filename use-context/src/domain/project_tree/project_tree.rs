@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{kernel::state::ExitNotify, services::{Service, entity::{Name, Object}}, sync::{Handles, Owner}, thread_pool::Scheduler};
 
-use crate::{domain::{Event, ProjectNodeStatus, ProjectNodes, ProjectTreeConf}, kernel::types::{channel::{self, Receiver, RecvTimeoutError, Sender}, fx_map::FxHashMap} };
+use crate::{domain::{Event, ProjectNodeStatus, ProjectNodes, ProjectTreeConf}, kernel::types::channel::{self, Receiver, RecvTimeoutError, Sender} };
 
 ///
 /// ### Service | ProjectTree
@@ -18,9 +18,9 @@ pub struct ProjectTree {
     /// Канал для отправки событий слиенту
     client_link: Owner<Sender<Event>>,
     /// Внешний кончик канала, в который расветы будут отправлять статусы нод
-    link_tx: Sender<(usize, ProjectNodeStatus)>,
+    link_tx: Sender<(String, ProjectNodeStatus)>,
     /// Тут получаем статусы нод от расчетов
-    link_rx: Owner<Receiver<(usize, ProjectNodeStatus)>>,
+    link_rx: Owner<Receiver<(String, ProjectNodeStatus)>>,
     nodes: Arc<ProjectNodes>,
     scheduler: Scheduler,
     handles: Handles<()>,

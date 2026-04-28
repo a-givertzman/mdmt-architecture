@@ -29,7 +29,7 @@ impl ProjectNodes {
     /// - В каждом цикле (64...120мс) вычитываться полностью.
     /// - Пересчет делаем по всем полученным событиям
     /// - Затем отправка статусов в UI
-    pub fn update_status(&self, node_id: usize, node_status: ProjectNodeStatus) {
+    pub fn update_status(&self, node_id: String, node_status: ProjectNodeStatus) {
         
     }
     ///
@@ -49,3 +49,42 @@ impl ProjectNodes {
     }
 }
 
+///
+/// Базовые тесты
+#[cfg(test)]
+mod tests {
+    use crate::domain::ProjectNodeKind;
+
+    use super::*;
+    use std::thread;
+    use std::time::Duration;
+    #[test]
+    fn test_arc_swap_nodes_flow() {
+        let project = Arc::new(ProjectNodes::new("test_parent"));
+        // 1. Симулируем фоновый поток, генерирующий события
+        let p_clone = project.clone();
+        let handle = thread::spawn(move || {
+            // Эмулируем задержку между тиками очереди
+            thread::sleep(Duration::from_millis(10));
+            let node_arc = Arc::new(ProjectNode::new(0, 0, 0, 0, ProjectNodeKind {}, 0));
+            // Вручную делаем то, что должен делать update_status
+            p_clone.nodes.insert("node_1".to_string(), node_arc.clone());
+            p_clone.updated_nodes.load().insert("node_1".to_string(), node_arc);
+        });
+        // 2. Главный поток забирает обновления
+        // Сначала там пусто
+        let empty_updates = project.get_updated();
+        assert!(empty_updates.is_empty());
+        // Ждем поток
+        handle.join().unwrap();
+        // 3. Теперь обновления должны появиться
+        let mut updates = project.get_updated();
+        assert_eq!(updates.len(), 1);
+        let (key, node) = updates.pop().unwrap();
+        assert_eq!(key, "node_1");
+        assert_eq!(node.status, ProjectNodeStatus::Outdated);
+        // 4. После вызова get_updated мапа должна была очиститься
+        let updates_after_clear = project.get_updated();
+        assert!(updates_after_clear.is_empty(), "Мапа обновлений должна быть пустой!");
+    }
+}

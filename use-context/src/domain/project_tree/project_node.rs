@@ -4,20 +4,43 @@ use crate::domain::{ProjectNodeKind, ProjectNodeStatus};
 /// ### Узел дерева проекта
 #[derive(Debug, Clone, Copy)]
 pub struct ProjectNode {
-    ///  - Идентификатор уникальный в пределах проекта (db.project_nodes.id)
-    id: usize,
     /// - Принадлежность проекту (db.project_nodes.project_id)
-    project_id: usize,
+    pub project_id: usize,
+    ///  - Идентификатор уникальный в пределах проекта (db.project_nodes.id)
+    pub id: usize,
     ///  - связь с родителем (db.project_nodes.parent_id)
-    parent_id: usize,
+    pub parent_id: usize,
     /// - для сортировки в пределах родителя (db.project_nodes.node_order)
-    order: usize,
+    pub order: usize,
     /// - Вид узла по ISO 10303 (db.project_nodes.kind)
-    kind: ProjectNodeKind,
+    pub kind: ProjectNodeKind,
     /// - для [OCC](./reference/occ.md)
     version: usize,
     /// - Актуальное состояние
-    status: ProjectNodeStatus,
+    pub status: ProjectNodeStatus,
     /// Связь с элементом 3D модели - и есть Классификация
-    geometry_id: usize,
+    pub geometry_id: usize,
+}
+//
+impl ProjectNode {
+    ///
+    /// Returns new [ProjectNode] instance with default `status` and `version = 0`
+    /// - `project_id`
+    /// - `id` - Идентификатор уникальный в пределах проекта (db.project_nodes.id)
+    /// - `parent_id`
+    /// - `order`
+    /// - `kind`
+    /// - `geometry_id`
+    pub fn new(project_id: usize, id: usize, parent_id: usize, order: usize, kind: ProjectNodeKind, geometry_id: usize) -> Self {
+        Self {
+            project_id,
+            id,
+            parent_id,
+            order,
+            kind,
+            version: 0,
+            status: ProjectNodeStatus::default(),
+            geometry_id,
+        }
+    }
 }
