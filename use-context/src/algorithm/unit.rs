@@ -4,9 +4,9 @@ use crate::algorithm::{Bound, DataArray, Moment, Position};
 use super::{AssignmentType, UnitCargoType};
 use get_size::GetSize;
 use sal_core::error::Error;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 ///
-#[derive(Debug, Clone, Deserialize, PartialEq, GetSize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize, GetSize)]
 pub struct LoadUnitData {
     /// ID груза
     pub cargo_id: usize,
