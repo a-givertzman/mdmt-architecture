@@ -18,12 +18,13 @@ pub struct Conf {
 impl Conf {
     pub fn read(path: impl AsRef<Path>) -> Result<Self, Error> {
         let error = Error::new("Conf", "new");
+        let path = path.as_ref();
         let rdr = OpenOptions::new()
             .read(true)
             .open(path)
-            .map_err(|err| error.pass(err.to_string()))?;
+            .map_err(|err| error.pass_with(format!("Can't open file {}", path.display()), err.to_string()))?;
         let conf = serde_yaml::from_reader(rdr)
-            .map_err(|err| error.pass(err.to_string()))?;
+            .map_err(|err| error.pass_with(format!("Error in config '{}'", path.display()), err.to_string()))?;
         Ok(conf)
     }
 }

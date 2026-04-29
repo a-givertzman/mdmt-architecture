@@ -22,7 +22,7 @@ fn main() -> Result<(), Error> {
     let dbg = Dbg::own("main");
     let ship_id = "Ship";
     let project_id = "Project";
-    let conf = Conf::read("./config.yaml").map_err(|err| Error::new(&dbg, ""))?;
+    let conf = Conf::read("./config.yaml").map_err(|err| Error::new(&dbg, "").err(err))?;
     let tp = ThreadPool::new(&dbg, conf.thread_pool);
     let (client, _) = channel::unbounded();
     let project_tree = ProjectTree::new(
@@ -61,10 +61,11 @@ fn main() -> Result<(), Error> {
     // calculus.eval(()).unwrap();
     let (send, _) = channel::unbounded();
     let client = Arc::new(ApiClient {});
+    log::debug!("All prepared, starting threads...:");
     let h1 = std::thread::spawn({
         let t = Instant::now();
         let ctx = ctx.transaction(send.clone(), client.clone());
-        log::debug!("Start Transaction elapsed: {:?}", t.elapsed());
+        log::debug!("Thread 1 | Start Transaction elapsed: {:?}", t.elapsed());
         move || {
             let initial: InitialCtx = ctx.read();
             let result = ApparentFrequenciesCtx {
@@ -80,18 +81,18 @@ fn main() -> Result<(), Error> {
                 ],
             };
             let id = ApparentFrequenciesCtx::iec_id();
-            log::debug!("ApparentFrequenciesCtx ID: {id}");
+            log::debug!("Thread 1 | ApparentFrequenciesCtx ID: {id}");
             // let properties = result.properties();
-            // log::debug!("ApparentFrequenciesCtx properies: {:?}", properties);
+            // log::debug!("Thread 1 | ApparentFrequenciesCtx properies: {:?}", properties);
             let ctx = ctx.write(result).unwrap();
             if let Err((_, err)) = ctx.commit() {
-                log::warn!("Error: {err}");
+                log::warn!("Thread 1 | Error: {err}");
             }
     }});
     let h2 = std::thread::spawn({
         let t = Instant::now();
         let ctx = ctx.transaction(send, client);
-        log::debug!("Start Transaction elapsed: {:?}", t.elapsed());
+        log::debug!("Thread 2 | Start Transaction elapsed: {:?}", t.elapsed());
         move || {
             let initial: InitialCtx = ctx.read();
             let result = UnitAreaCtx {
@@ -101,12 +102,12 @@ fn main() -> Result<(), Error> {
                 distr_v: vec![1.39, 44.79, 66.07, 82.68, 54.24, 4.03, 37.31, 42.9],
             };
             let id = UnitAreaCtx::iec_id();
-            log::debug!("UnitAreaCtx ID: {id}");
+            log::debug!("Thread 2 | UnitAreaCtx ID: {id}");
             let properties = result.properties();
-            log::debug!("UnitAreaCtx properies: {:?}", properties);
+            log::debug!("Thread 2 | UnitAreaCtx properies: {:?}", properties);
             let ctx = ctx.write(result).unwrap();
             if let Err((_, err)) = ctx.commit() {
-                log::warn!("Error: {err}");
+                log::warn!("Thread 2 | Error: {err}");
             }
     }});
     let tags = UnitAreaEval::tags();
