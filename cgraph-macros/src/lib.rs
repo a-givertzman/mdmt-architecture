@@ -113,7 +113,9 @@ impl VisitMut for EvalVisitor {
     }
     ///
     /// Анализирует вызовы через точку: `ctx.read::<Type>()`
+    /// Перехватываем вызовы методов: self.fake_pass_ref(ctx) или self.fake_pass_ref(&mut ctx)
     fn visit_expr_method_call_mut(&mut self, node: &mut ExprMethodCall) {
+        // Сначала проверяем, не вызывается ли метод у самого контекста (ctx.read())
         if let Expr::Path(expr_path) = &*node.receiver {
             if expr_path.path.is_ident(&self.ctx_ident) {
                 let method = node.method.to_string();
@@ -127,6 +129,22 @@ impl VisitMut for EvalVisitor {
                     } else {
                         self.errors.push(Error::new(node.span(), "Укажите тип явно: ctx.read::<Type>() или let x: Type = ..."));
                     }
+                    return; // Вызов к самому контексту - это ок, идем дальше
+                }
+            }
+        }
+        // Если метод вызывается у другого объекта (например, self), проверяем его аргументы
+        for arg in &node.args {
+            let mut target_expr = arg;
+            if let Expr::Reference(expr_ref) = arg {
+                target_expr = &*expr_ref.expr; // Снимаем & или &mut
+            }
+            if let Expr::Path(arg_path) = target_expr {
+                if arg_path.path.is_ident(&self.ctx_ident) {
+                    self.errors.push(Error::new(
+                        arg.span(),
+                        "Архитектурное ограничение: Запрещено передавать ContextTransaction во вспомогательные методы. Извлеките нужные данные в `eval` и передайте их."
+                    ));
                 }
             }
         }
@@ -134,10 +152,14 @@ impl VisitMut for EvalVisitor {
     }
     ///
     /// Анализирует UFCS вызовы: `ContextRead::<Type>::read(&ctx)`
+    /// Перехватываем вызовы функций: my_function(ctx) или my_function(&mut ctx)
     fn visit_expr_call_mut(&mut self, node: &mut ExprCall) {
         if let Expr::Path(expr_path) = &*node.func {
             let path_str = quote!(#expr_path).to_string().replace(" ", "");
-            if path_str.contains("ContextRead") || path_str.contains("ContextWrite") {
+            let is_read = path_str.contains("ContextRead");
+            let is_write = path_str.contains("ContextWrite");
+            // Если это легальный UFCS вызов чтения/записи - парсим как раньше
+            if is_read || is_write {
                 let mut clean_type = None;
                 for segment in &expr_path.path.segments {
                     if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
@@ -146,10 +168,25 @@ impl VisitMut for EvalVisitor {
                         }
                     }
                 }
-                
                 if let Some(ty) = clean_type {
                     if path_str.contains("Write") { self.writes.insert(ty); }
                     else { self.reads.insert(ty); }
+                }
+                return; // Важно: прерываем обход, чтобы не ругаться на этот вызов
+            }
+        }
+        // Если это ЛЮБОЙ ДРУГОЙ вызов функции, проверяем аргументы
+        for arg in &node.args {
+            let mut target_expr = arg;
+            if let Expr::Reference(expr_ref) = arg {
+                target_expr = &*expr_ref.expr; // Снимаем & или &mut
+            }
+            if let Expr::Path(arg_path) = target_expr {
+                if arg_path.path.is_ident(&self.ctx_ident) {
+                    self.errors.push(Error::new(
+                        arg.span(),
+                        "Архитектурное ограничение: Запрещено передавать ContextTransaction во вспомогательные методы. Читайте/пишите данные внутри `eval` и передавайте конкретные значения."
+                    ));
                 }
             }
         }
@@ -158,7 +195,27 @@ impl VisitMut for EvalVisitor {
 }
 ///
 /// ### Атрибутный макрос для автоматической реализации трейта `EvalTags`.
-/// Генерирует списки IEC-ключей на основе использования контекста в коде.
+/// Генерирует списки IEC-ключей на основе использования контекста (`ContextTransaction`) в коде.
+/// 
+/// - Читайте / пишите в контекст внутри метода `eval`
+/// - ✅ Разрешенные способы доступа к контексту (`ContextTransaction`)
+/// ```ignore
+/// let initial = ContextRead::<InitialCtx>::read(&ctx);
+/// let initial: InitialCtx = ctx.read();
+/// let initial: &InitialCtx = initial;
+/// ContextWrite::<UnitAreaCtx>::write(ctx, result)
+/// ```
+/// - ❌ Не используйте неявные типы
+/// ```ignore
+/// let initial = ctx.read_ref();
+/// let initial = ctx.read();
+/// ctx.write(result)
+/// ```
+/// - ❌ Не передавайте контекст во вспомогательные методы, передавайте извлеченные элементы
+/// ```ignore
+/// Self::fake_pass_ref(&ctx);
+/// let ctx = Self::fake_pass(ctx);
+/// ```
 #[proc_macro_attribute]
 pub fn eval_depend(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut ast = parse_macro_input!(item as ItemImpl);

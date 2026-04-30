@@ -8,7 +8,6 @@ pub struct UnitAreaEval {
     ctx: Box<dyn Eval<(), EvalResult> + Send + Sync>,
 }
 //
-//
 impl UnitAreaEval {
     ///
     pub fn new(
@@ -24,17 +23,18 @@ impl UnitAreaEval {
     // #[eval_depend]
     fn fake_pass_ref(ctx: &ContextTransaction) {
         // let initial = ContextReadRef::<InitialCtx>::read_ref(&ctx);
+        let initial = ContextRead::<InitialCtx>::read(ctx);
+        // let initial: InitialCtx = ctx.read();
+        // let initial = ctx.read_ref();
+        // let initial: &InitialCtx = initial;
+    }
+    // #[eval_depend]
+    fn fake_pass(ctx: ContextTransaction) -> ContextTransaction {
+        // let initial = ContextReadRef::<InitialCtx>::read_ref(&ctx);
         // let initial = ContextRead::<InitialCtx>::read(&ctx);
         let initial: InitialCtx = ctx.read();
         // let initial = ctx.read_ref();
         // let initial: &InitialCtx = initial;
-    }
-    fn fake_pass(ctx: ContextTransaction) -> ContextTransaction {
-        // let initial = ContextReadRef::<InitialCtx>::read_ref(&ctx);
-        // let initial = ContextRead::<InitialCtx>::read(&ctx);
-        // let initial: InitialCtx = ctx.read();
-        let initial = ctx.read_ref();
-        let initial: &InitialCtx = initial;
         ctx
     }
 }
@@ -46,13 +46,13 @@ impl Eval<(), EvalResult> for UnitAreaEval {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {
-                // let initial = ContextReadRef::<InitialCtx>::read_ref(&ctx);
+                let initial = ContextReadRef::<InitialCtx>::read_ref(&ctx);
                 // let initial = ContextRead::<InitialCtx>::read(&ctx);
-                let initial: InitialCtx = ctx.read();
+                // let initial: InitialCtx = ctx.read();
                 // let initial = ctx.read_ref();
                 // let initial: &InitialCtx = initial;
-                Self::fake_pass_ref(&ctx);
-                let ctx = Self::fake_pass(ctx);
+                // Self::fake_pass_ref(&ctx);
+                // let ctx = Self::fake_pass(ctx);
                 let unit = match initial.unit.as_ref() {
                     Some(data) => data,
                     None => return Err(error.err("Read unit error: no data!")),
