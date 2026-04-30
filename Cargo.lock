@@ -264,6 +264,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cgraph-macros"
+version = "0.1.0"
+source = "git+https://github.com/a-givertzman/mdmt-architecture.git?tag=0.1.0#8dcea26db16d6b0cc69e49901dda9b9851c2129e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "chacha20"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -336,6 +346,15 @@ checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
 [[package]]
 name = "context-macros"
 version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "context-macros"
+version = "0.1.0"
+source = "git+https://github.com/a-givertzman/mdmt-architecture.git?tag=0.1.0#8dcea26db16d6b0cc69e49901dda9b9851c2129e"
 dependencies = [
  "quote",
  "syn 2.0.117",
@@ -1057,8 +1076,8 @@ dependencies = [
  "api-tools 0.2.2",
  "arc-swap",
  "bincode",
- "cgraph-macros",
- "context-macros",
+ "cgraph-macros 0.1.0 (git+https://github.com/a-givertzman/mdmt-architecture.git?tag=0.1.0)",
+ "context-macros 0.1.0 (git+https://github.com/a-givertzman/mdmt-architecture.git?tag=0.1.0)",
  "debugging 0.0.1 (git+https://github.com/a-givertzman/rust-debuging.git?tag=0.1.0)",
  "get-size",
  "kanal",
@@ -1630,7 +1649,7 @@ dependencies = [
 [[package]]
 name = "sal-sync"
 version = "0.3.1"
-source = "git+https://github.com/a-givertzman/rust-sal-sync.git?tag=0.3.1#9a36822c5be4784cf0a26ce1743059ed1b579854"
+source = "git+https://github.com/a-givertzman/rust-sal-sync.git?tag=0.3.1#c11edeaa5087be272122ce25858394c92aa9ca57"
 dependencies = [
  "api-tools 0.2.1",
  "arc-swap",
